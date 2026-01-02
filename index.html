@@ -857,15 +857,19 @@
         const idxClicked = +this.dataset.idx;
         const currentIdx = playOrder[playIndex];
         
+        // Si el ítem ya fue acertado (resuelto), ignorar clic
         if(answered.has(currentIdx)) return;
 
-        if (currentWordAudio) { currentWordAudio.pause(); currentWordAudio.currentTime = 0; currentWordAudio = null; }
-        if (pendingAudioTimeout) { clearTimeout(pendingAudioTimeout); pendingAudioTimeout = null; }
-
+        // Incrementar intentos SIEMPRE (penalización)
         attemptsGame2++;
         document.getElementById('attemptsGame2').textContent = attemptsGame2;
 
+        // Parar audios previos
+        if (currentWordAudio) { currentWordAudio.pause(); currentWordAudio.currentTime = 0; currentWordAudio = null; }
+        if (pendingAudioTimeout) { clearTimeout(pendingAudioTimeout); pendingAudioTimeout = null; }
+
         if(idxClicked === currentIdx){
+            // --- ACIERTO ---
             this.classList.add('flash-green');
             playSound('correct');
             
@@ -875,9 +879,21 @@
                 this.style.borderColor = '#000000';
             }, 200);
 
+            // Solo al acertar se añade a "answered" (resuelto) y se aumenta el progreso
             answered.add(currentIdx); correctCountGame2++; 
             updateProgress('progressFillGame2', 50 + (answered.size/5)*50);
+
+            if(answered.size === game2Targets.length) { 
+                setTimeout(finishGame, 500); 
+            } else {
+                playIndex++;
+                if (playIndex >= playOrder.length) playIndex = playOrder.length - 1;
+                setWordDisplayByIndex(playOrder[playIndex]);
+            }
         } else {
+            // --- ERROR ---
+            // Visual de error, pero NO se añade a "answered".
+            // El jugador debe seguir intentando hasta acertar.
             this.classList.add('flash-red');
             playSound('error');
             
@@ -886,18 +902,9 @@
                 this.style.backgroundColor = '#ffffff';
                 this.style.borderColor = '#000000';
             }, 200);
-
-            answered.add(currentIdx); 
-            updateProgress('progressFillGame2', 50 + (answered.size/5)*50);
-        }
-
-        if(answered.size === game2Targets.length) { 
-            setTimeout(finishGame, 500); 
-        }
-        else {
-            playIndex++;
-            if (playIndex >= playOrder.length) playIndex = playOrder.length - 1;
-            setWordDisplayByIndex(playOrder[playIndex]);
+            
+            // Aquí NO avanzamos al siguiente ítem (playIndex no cambia)
+            // El jugador vuelve a intentar hacer clic en la casilla correcta.
         }
     }
 
